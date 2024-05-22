@@ -80,3 +80,5 @@ final dummyFoods = [
         'Cabai merah besar dengan rasa pedas yang khas dan warna merah yang menawan. Ideal untuk memberikan aroma dan rasa pedas pada berbagai hidangan, mulai dari masakan Asia hingga saus barbeque',
   ),
 ];
+
+List<dynamic> favorites = [];

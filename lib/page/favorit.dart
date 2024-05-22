@@ -1,7 +1,24 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:uispeed_grocery_shop/model/food.dart';
+import 'package:uispeed_grocery_shop/service/firebase_service.dart';
 
-class FavoritePage extends StatelessWidget {
+class FavoritePage extends StatefulWidget {
+  @override
+  State<FavoritePage> createState() => _FavoritePageState();
+}
+
+class _FavoritePageState extends State<FavoritePage> {
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    
+  }
+
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,9 +47,10 @@ class FavoritePage extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  for(int i=1; i<4; i++)
+                  for (int i = 1; i < 4; i++)
                     Container(
-                      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      margin:
+                          EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         color: Colors.white,
@@ -48,7 +66,11 @@ class FavoritePage extends StatelessWidget {
                         children: [
                           Padding(
                             padding: EdgeInsets.all(10),
-                            child: Image.asset('asset/Tomatoes.jpg', height: 80, width: 80,),
+                            child: Image.asset(
+                              'asset/Tomatoes.jpg',
+                              height: 80,
+                              width: 80,
+                            ),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
