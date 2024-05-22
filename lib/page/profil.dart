@@ -1,10 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uispeed_grocery_shop/page/editprofile_page.dart';
 import 'package:uispeed_grocery_shop/providers/user_provider.dart';
+import 'package:uispeed_grocery_shop/service/firebase_service.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
+  const ProfilePage({super.key});
+
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
@@ -17,20 +19,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     super.initState();
     // Inisialisasi _lastEditedDate dengan tanggal saat ini
     _lastEditedDate = DateTime.now();
+    loadImageData();
+  }
+
+  Future<void> loadImageData() async {
+    final userData = ref.read(userProvider);
+    String imageUrl = await getProperty('users', userData['id']!, 'image_url');
+    ref.read(userProvider.notifier).setImageURL(imageUrl);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Profil',
           style: TextStyle(
             color: Colors.white,
           ),
         ),
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back,
             color: Colors.white,
           ),
@@ -38,17 +47,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Navigator.pop(context);
           },
         ),
-        backgroundColor: Color(0xFF00541A),
+        backgroundColor: const Color(0xFF00541A),
       ),
       body: Stack(
         children: [
           ListView(
             children: [
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               header(context),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               image(),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               details(context),
             ],
           ),
@@ -68,61 +77,61 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 20),
-          Text(
+          const SizedBox(height: 20),
+          const Text(
             'Your Email',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             userData['email']!,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
             ),
           ),
-          SizedBox(height: 20),
-          Text(
+          const SizedBox(height: 20),
+          const Text(
             'Password',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
           ),
-          SizedBox(height: 10),
-          Text(
+          const SizedBox(height: 10),
+          const Text(
             '•••••••••••••••••',
             style: TextStyle(
               fontSize: 18,
             ),
           ),
-          SizedBox(height: 20),
-          Text(
+          const SizedBox(height: 20),
+          const Text(
             'Phone Number',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             userData['phone']!,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Menampilkan tanggal terakhir diedit
-          Text(
+          const Text(
             'Terakhir Diedit:',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () {
               // Tampilkan Date Picker
@@ -140,13 +149,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 }
               });
             },
-            child: Text('Pilih Tanggal'),
+            child: const Text('Pilih Tanggal'),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           // Menampilkan tanggal terakhir diedit
           Text(
             '$_lastEditedDate',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
             ),
           ),
@@ -156,8 +165,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   SizedBox image() {
+    var userData = ref.watch(userProvider);
     return SizedBox(
-      width: double.infinity,
+      width: 300,
       height: 300,
       child: Stack(
         children: [
@@ -167,7 +177,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             right: 0,
             child: Container(
               height: 150,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(30),
@@ -178,25 +188,31 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           Center(
             child: Container(
+              
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey[300]!,
                     blurRadius: 16,
-                    offset: Offset(0, 10),
+                    offset: const Offset(0, 10),
                   ),
                 ],
                 borderRadius: BorderRadius.circular(250),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(250),
-                child: Image.asset(
-                  'asset/kubis.jpg',
-                  fit: BoxFit.cover,
-                  width: 250,
-                  height: 250,
-                ),
-              ),
+                  borderRadius: BorderRadius.circular(250),
+                  child: (userData['image_url'] != null &&
+                          userData['image_url']!.isNotEmpty)
+                      ? networkImage(userData['image_url']!)
+                      : CircleAvatar(
+                          radius: 150,
+                          backgroundColor: Colors.grey,
+                          child: Text(
+                            userData['name']!.substring(0, 1),
+                            style: const TextStyle(
+                                fontSize: 80, color: Colors.white),
+                          ),
+                        )),
             ),
           ),
         ],
@@ -214,31 +230,31 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             borderRadius: BorderRadius.circular(8),
             child: const BackButton(color: Colors.white),
           ),
-          Spacer(),
+          const Spacer(),
           Text(
             'Profil Pengguna',
-            style: Theme.of(context).textTheme.headline6!.copyWith(
+            style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   color: Colors.white,
                 ),
           ),
-          Spacer(),
+          const Spacer(),
           Material(
             color: Colors.white.withOpacity(0.3),
             borderRadius: BorderRadius.circular(8),
             child: InkWell(
               onTap: () async {
-                FirebaseAuth.instance.signOut();
+                logOut(context);
               },
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 40,
                 width: 40,
                 alignment: Alignment.center,
-                child: Icon(Icons.logout),
+                child: const Icon(Icons.logout),
               ),
             ),
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           // Tambahkan tombol "Edit Profil"
           Material(
             color: Colors.white.withOpacity(0.3),
@@ -250,7 +266,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 height: 40,
                 width: 40,
                 alignment: Alignment.center,
-                child: Icon(Icons.edit),
+                child: const Icon(Icons.edit),
               ),
             ),
           ),
@@ -261,9 +277,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   void _navigateToEditProfilePage() {
     // Navigasi ke halaman EditProfilePage
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => EditProfilePage()),
+      MaterialPageRoute(builder: (context) => const EditProfilePage()),
     );
   }
 }

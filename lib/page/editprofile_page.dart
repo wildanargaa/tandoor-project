@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uispeed_grocery_shop/providers/user_provider.dart';
+import 'package:uispeed_grocery_shop/service/firebase_service.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
+  const EditProfilePage({super.key});
+
   @override
   _EditProfilePageState createState() => _EditProfilePageState();
 }
@@ -18,6 +22,7 @@ class _EditProfilePageState extends ConsumerState {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
   String _phone = '';
+  final String _imageURL = '';
   void _save() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) {
@@ -30,7 +35,8 @@ class _EditProfilePageState extends ConsumerState {
         id: userData['id']!,
         name: _name,
         email: userData['email']!,
-        phone: _phone);
+        phone: _phone,
+        image_url: _imageURL);
     try {
       print(userData['id']);
       await FirebaseFirestore.instance
@@ -52,13 +58,13 @@ class _EditProfilePageState extends ConsumerState {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Edit Profil',
           style: TextStyle(
             color: Colors.white,
           ),
         ),
-        backgroundColor: Color(0xFF00541A),
+        backgroundColor: const Color(0xFF00541A),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -67,32 +73,33 @@ class _EditProfilePageState extends ConsumerState {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20),
-              Text(
+              image(),
+              const SizedBox(height: 20),
+              const Text(
                 'Email',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextFormField(
                 initialValue: userData['email'],
                 readOnly: true,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'name',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextFormField(
                 validator: (value) {
                   if (value == null || value.trim() == '') {
@@ -104,19 +111,19 @@ class _EditProfilePageState extends ConsumerState {
                   _name = newValue!;
                 },
                 initialValue: userData['name'],
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
-              Text(
+              const SizedBox(height: 20),
+              const Text(
                 'Phone Number',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextFormField(
                 validator: (value) {
                   if (value == null || value.trim() == '') {
@@ -129,18 +136,89 @@ class _EditProfilePageState extends ConsumerState {
                 },
                 initialValue: userData['phone'],
                 keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _save,
-                child: Text('Simpan'),
+                child: const Text('Simpan'),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  SizedBox image() {
+    var userData = ref.watch(userProvider);
+    return SizedBox(
+      width: double.infinity,
+      height: 300,
+      child: Stack(
+        children: [
+          Center(
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey[300]!,
+                    blurRadius: 16,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+                borderRadius: BorderRadius.circular(250),
+              ),
+              child: ClipRRect(
+                  borderRadius: BorderRadius.circular(250),
+                  child: (userData['image_url'] != null &&
+                          userData['image_url']!.isNotEmpty)
+                      ? networkImage(userData['image_url']!)
+                      : CircleAvatar(
+                          radius: 150,
+                          backgroundColor: Colors.grey,
+                          child: Text(
+                            userData['name']!.substring(0, 1),
+                            style: const TextStyle(
+                                fontSize: 80, color: Colors.white),
+                          ),
+                        )),
+            ),
+          ),
+          Center(
+              child: GestureDetector(
+            onTap: () async {
+              User? loggedInUser = await AuthService().getCurrentUser();
+              if (loggedInUser != null) {
+                await uploadImage('users', loggedInUser.uid, 'image_url');
+                String imageUrl =
+                    await getProperty('users', loggedInUser.uid, 'image_url');
+                ref.read(userProvider.notifier).setImageURL(imageUrl);
+              }
+            },
+            child: ClipRRect(
+                borderRadius: BorderRadius.circular(250),
+                child: CircleAvatar(
+                    radius: 150,
+                    backgroundColor: Colors.black12.withOpacity(0.5),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 60,
+                        ),
+                        Text(
+                          'Ubah profil',
+                          style: TextStyle(color: Colors.white),
+                        )
+                      ],
+                    ))),
+          ))
+        ],
       ),
     );
   }

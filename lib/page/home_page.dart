@@ -1,20 +1,52 @@
-import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uispeed_grocery_shop/model/food.dart';
 import 'package:uispeed_grocery_shop/page/detail_page.dart';
 import 'package:uispeed_grocery_shop/page/favorit.dart';
 import 'package:uispeed_grocery_shop/page/profil.dart';
+import 'package:uispeed_grocery_shop/providers/user_provider.dart';
+import 'package:uispeed_grocery_shop/service/firebase_service.dart';
+
 import 'bottomCart.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   int indexCategory = 0;
+  Widget nama = const Text(
+    "selamat datang",
+    style: TextStyle(
+      color: Color(0xFF00541A),
+      fontWeight: FontWeight.w500,
+      fontSize: 18,
+    ),
+  );
+
+  @override
+  void initState() {
+    // TODO: implement initState
+
+    super.initState();
+    _checkAndHandleUserDocument();
+  }
+
+  Future<void> _checkAndHandleUserDocument() async {
+    User? loggedInUser = await AuthService().getCurrentUser();
+    // Panggil fungsi checkAndHandleDocument dengan user.uid
+    await checkAndHandleDocument("favorites", loggedInUser!.uid,
+        {"name": loggedInUser.email, "favorites": []});
+
+    favorites = await getProperty('favorites', loggedInUser.uid, 'favorites');
+
+    print(favorites);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,41 +55,44 @@ class _HomePageState extends State<HomePage> {
         type: BottomNavigationBarType.fixed,
         showSelectedLabels: false,
         showUnselectedLabels: false,
-        selectedItemColor: Color(0xFF00541A),
-        unselectedItemColor: Color(0xFF13A941),
+        selectedItemColor: const Color(0xFF00541A),
+        unselectedItemColor: const Color(0xFF13A941),
         currentIndex: indexCategory,
         onTap: (index) {
           setState(() {
             indexCategory = index;
-            if (index == 1) { // Index 1 merupakan index dari item keranjang belanja
-            Navigator.push(context, MaterialPageRoute(builder: (_) => BottomCart()));
+            if (index == 1) {
+              // Index 1 merupakan index dari item keranjang belanja
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => BottomCart()));
             }
-            if (index == 2) { // Index 1 merupakan index dari item keranjang belanja
-            Navigator.push(context, MaterialPageRoute(builder: (_) => FavoritePage()));
+            if (index == 2) {
+              // Index 1 merupakan index dari item keranjang belanja
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => FavoritePage()));
             }
-            if (index == 3) { // Index 1 merupakan index dari item keranjang belanja
-            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage()));
+            if (index == 3) {
+              // Index 1 merupakan index dari item keranjang belanja
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ProfilePage()));
             }
           });
-  },
-  items: const [
-    BottomNavigationBarItem(
-        icon: Icon(Icons.home), label: 'Home'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.shopping_cart), label: 'Cart'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.favorite), label: 'Favorite'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.person), label: 'Person'),
-  ],
-),
-
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_cart), label: 'Cart'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.favorite), label: 'Favorite'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Person'),
+        ],
+      ),
       body: ListView(
         children: [
           const SizedBox(height: 16),
           header(),
           const SizedBox(height: 10),
-          title(),
+          title(nama),
           const SizedBox(height: 20),
           search(),
           const SizedBox(height: 20),
@@ -70,26 +105,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget header() {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                'asset/HP_LogoTandoor.png',
-                fit: BoxFit.cover,
-                width: 28,
-                height: 28,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  'asset/HP_LogoTandoor.png',
+                  fit: BoxFit.cover,
+                  width: 28,
+                  height: 28,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Text('Tandoor', style: TextStyle(fontSize: 18)),
-          ],
-        ),
+              const SizedBox(width: 8),
+              const Text('Tandoor', style: TextStyle(fontSize: 18)),
+            ],
+          ),
           const Spacer(),
           Material(
             color: Colors.grey[200],
@@ -101,7 +136,8 @@ class _HomePageState extends State<HomePage> {
                 width: 50,
                 height: 50,
                 alignment: Alignment.center,
-                child: const Icon(Icons.notifications, color: Color(0xFF00541A)),
+                child:
+                    const Icon(Icons.notifications, color: Color(0xFF00541A)),
               ),
             ),
           ),
@@ -110,21 +146,26 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget title() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+  Widget title(Widget nama) {
+    var userData = ref.watch(userProvider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Hi Naufal',
-            style: TextStyle(
-              color: Color(0xFF00541A),
-              fontWeight: FontWeight.w500,
-              fontSize: 18,
-            ),
+          Row(
+            children: [
+              Text(
+                'Hi, ${userData['name']}',
+                style: const TextStyle(
+                  color: Color(0xFF00541A),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 18,
+                ),
+              ),
+            ],
           ),
-          Text(
+          const Text(
             'Temukan produk Anda',
             style: TextStyle(
               color: Colors.black,
@@ -166,8 +207,8 @@ class _HomePageState extends State<HomePage> {
   Widget categories() {
     List list = ['Beranda', 'Promo', 'Produk'];
     return Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width*0.8,
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
         height: 40,
         child: Center(
           child: ListView.builder(
@@ -193,8 +234,11 @@ class _HomePageState extends State<HomePage> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 22,
-                        color: indexCategory == index ? Color(0xFF00541A) : Colors.grey,
-                        fontWeight: indexCategory == index ? FontWeight.bold : null,
+                        color: indexCategory == index
+                            ? const Color(0xFF00541A)
+                            : Colors.grey,
+                        fontWeight:
+                            indexCategory == index ? FontWeight.bold : null,
                       ),
                     ),
                   ),
@@ -255,7 +299,7 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         food.name,
-                        style: Theme.of(context).textTheme.headline6,
+                        style: Theme.of(context).textTheme.titleLarge,
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -293,10 +337,19 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                const Positioned(
+                Positioned(
                   top: 12,
                   right: 12,
-                  child: Icon(Icons.favorite_border, color: Colors.grey),
+                  child: GestureDetector(
+                      onTap: () async {
+                        favorites.add("PD1");
+                        User? loggedInUser =
+                            await AuthService().getCurrentUser();
+                        await updateProperty('favorites', loggedInUser!.uid,
+                            'favorites', favorites);
+                      },
+                      child: const Icon(Icons.favorite_border,
+                          color: Colors.grey)),
                 ),
                 const Align(
                   alignment: Alignment.bottomRight,
