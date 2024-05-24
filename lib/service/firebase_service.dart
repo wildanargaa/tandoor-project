@@ -181,15 +181,18 @@ Future<void> uploadImage(
   }
 }
 
-Image networkImage(String imageURL) {
-  return Image.network(imageURL, width: 300, height: 300, fit: BoxFit.cover,
-      loadingBuilder: (BuildContext context, Widget child,
+Image networkImage(String imageURL, double width, double height) {
+  return Image.network(imageURL,
+      width: width,
+      height: height,
+      fit: BoxFit.cover, loadingBuilder: (BuildContext context, Widget child,
           ImageChunkEvent? loadingProgress) {
     if (loadingProgress == null) {
       return child;
     } else {
       return Center(
         child: CircularProgressIndicator(
+          color: const Color(0xFF00541A),
           value: loadingProgress.expectedTotalBytes != null
               ? loadingProgress.cumulativeBytesLoaded /
                   (loadingProgress.expectedTotalBytes ?? 1)
@@ -201,4 +204,29 @@ Image networkImage(String imageURL) {
           (BuildContext context, Object exception, StackTrace? stackTrace) {
     return const Text('Failed to load image');
   });
+}
+
+Widget documentStreamBuilder(String collection,
+    Widget Function(Map<String, dynamic>) documentCardBuilder) {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance.collection(collection).snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (!snapshot.hasData) {
+        return const Center(child: Text('No Data Found'));
+      }
+
+      final documents = snapshot.data!.docs;
+
+      return ListView.builder(
+        itemCount: documents.length,
+        itemBuilder: (context, index) {
+          final data = documents[index].data() as Map<String, dynamic>;
+          return documentCardBuilder(data);
+        },
+      );
+    },
+  );
 }

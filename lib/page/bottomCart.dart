@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 class BottomCart extends StatelessWidget {
   @override
@@ -30,9 +30,10 @@ class BottomCart extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  for(int i=1; i<4; i++)
+                  for (int i = 1; i < 4; i++)
                     Container(
-                      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      margin:
+                          EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         color: Colors.white,
@@ -48,7 +49,11 @@ class BottomCart extends StatelessWidget {
                         children: [
                           Padding(
                             padding: EdgeInsets.all(10),
-                            child: Image.asset('asset/Tomatoes.jpg', height: 80, width: 80,),
+                            child: Image.asset(
+                              'asset/Tomatoes.jpg',
+                              height: 80,
+                              width: 80,
+                            ),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +111,8 @@ class BottomCart extends StatelessWidget {
                                       child: Icon((CupertinoIcons.minus)),
                                     ),
                                     Container(
-                                      margin: EdgeInsets.symmetric(horizontal: 10),
+                                      margin:
+                                          EdgeInsets.symmetric(horizontal: 10),
                                       child: const Text(
                                         '1',
                                         style: TextStyle(
@@ -177,7 +183,9 @@ class BottomCart extends StatelessWidget {
                     )
                   ],
                 ),
-                SizedBox(height: 20,),
+                SizedBox(
+                  height: 20,
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -206,19 +214,18 @@ class BottomCart extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 20),
             height: 80,
             decoration: BoxDecoration(
-              color: Color(0xFF00541A),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 1,
-                  blurRadius: 8,
-                )
-              ]
-            ),
+                color: Color(0xFF00541A),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                  )
+                ]),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -231,7 +238,7 @@ class BottomCart extends StatelessWidget {
                   ),
                 ),
                 InkWell(
-                  onTap: (){},
+                  onTap: () {},
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     decoration: BoxDecoration(

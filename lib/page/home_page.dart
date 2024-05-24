@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:uispeed_grocery_shop/page/detail_page.dart';
 import 'package:uispeed_grocery_shop/page/favorit.dart';
 import 'package:uispeed_grocery_shop/page/profil.dart';
 import 'package:uispeed_grocery_shop/providers/user_provider.dart';
+import 'package:uispeed_grocery_shop/service/converter.dart';
 import 'package:uispeed_grocery_shop/service/firebase_service.dart';
 
 import 'bottomCart.dart';
@@ -95,10 +97,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           title(nama),
           const SizedBox(height: 20),
           search(),
-          const SizedBox(height: 20),
-          categories(),
+          //const SizedBox(height: 20),
+          //categories(),
           const SizedBox(height: 10),
-          gridFood(),
+          foodGrid(),
         ],
       ),
     );
@@ -268,7 +270,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         return GestureDetector(
           onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) {
-              return DetailPage(food: food);
+              return Container();
             }));
           },
           child: Container(
@@ -374,4 +376,145 @@ class _HomePageState extends ConsumerState<HomePage> {
       },
     );
   }
+}
+
+Widget foodGrid() {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance.collection('products').snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (!snapshot.hasData) {
+        return const Center(child: Text('No Data Found'));
+      }
+
+      final documents = snapshot.data!.docs;
+
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          mainAxisExtent: 270,
+        ),
+        itemCount: documents.length,
+        itemBuilder: (context, index) {
+          final data = documents[index].data() as Map<String, dynamic>;
+          return buildProductsCard(data, context);
+        },
+      );
+    },
+  );
+}
+
+Widget buildProductsCard(Map<String, dynamic> food, BuildContext context) {
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(context, MaterialPageRoute(builder: (context) {
+        return DetailPage(food: food);
+      }));
+    },
+    child: Container(
+      height: 10,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              Center(
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(120),
+                    child: SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: networkImage(food['image_url']!, 120, 120))),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  food['name'] ?? 'No Name',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Text(
+                      food['conversion'] ?? '',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.star, color: Colors.amber, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      food['rating']?.toString() ?? '',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Rp${priceConverter(food['price']!) ?? ''}',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: GestureDetector(
+              onTap: () async {
+                // Replace 'PD1' with actual item id and 'favorites' with your actual logic
+                List<String> favorites = ['PD1'];
+                User? loggedInUser = await AuthService().getCurrentUser();
+                if (loggedInUser != null) {
+                  await updateProperty(
+                      'favorites', loggedInUser.uid, 'favorites', favorites);
+                }
+              },
+              child: const Icon(Icons.favorite_border, color: Colors.grey),
+            ),
+          ),
+          const Align(
+            alignment: Alignment.bottomRight,
+            child: Material(
+              color: Color(0xFF00541A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              child: InkWell(
+                child: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.add, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
