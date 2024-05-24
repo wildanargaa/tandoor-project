@@ -367,7 +367,7 @@ class _CartPageState extends State<CartPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '\ Rp70,000',
+                      priceConverter(totalPrice + 30000),
                       style: TextStyle(
                         color: Colors.amber,
                         fontWeight: FontWeight.bold,
