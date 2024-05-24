@@ -95,9 +95,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     String productId = food['id'];
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return DetailPage(food: food);
-        }));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => DetailPage(
+                    food: food,
+                  )),
+        ).then((value) {
+          // Memeriksa nilai yang dikembalikan dari SecondScreen
+          _loadFavorites();
+        });
       },
       child: Container(
         height: 10,
@@ -152,7 +159,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    'Rp${priceConverter(food['price']!) ?? ''}',
+                    'Rp${priceConverter(food['price']!)}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
@@ -177,16 +184,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 },
               ),
             ),
-            const Align(
+            Align(
               alignment: Alignment.bottomRight,
               child: Material(
-                color: Color(0xFF00541A),
-                borderRadius: BorderRadius.only(
+                color: const Color(0xFF00541A),
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   bottomRight: Radius.circular(16),
                 ),
                 child: InkWell(
-                  child: Padding(
+                  onTap: () async {
+                    await addToCart(productId, food['name'], currentUser!);
+                  },
+                  child: const Padding(
                     padding: EdgeInsets.all(8),
                     child: Icon(Icons.add, color: Colors.white),
                   ),
@@ -286,12 +296,23 @@ class _HomePageState extends ConsumerState<HomePage> {
             if (index == 1) {
               // Index 1 merupakan index dari item keranjang belanja
               Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => BottomCart()));
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => CartPage(userId: currentUser!.uid)));
             }
             if (index == 2) {
               // Index 1 merupakan index dari item keranjang belanja
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const FavoritePage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoritePage()),
+              ).then((value) {
+                // Memeriksa nilai yang dikembalikan dari SecondScreen
+
+                setState(() {
+                  // Memperbarui pesan dengan nilai yang dikembalikan
+                  _loadFavorites();
+                });
+              });
             }
             if (index == 3) {
               // Index 1 merupakan index dari item keranjang belanja

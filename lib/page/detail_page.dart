@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uispeed_grocery_shop/service/converter.dart';
 import 'package:uispeed_grocery_shop/service/firebase_service.dart';
@@ -11,7 +13,93 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
-  int quantity = 1;
+  int quantity = 0;
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  List<String> favoriteProductIds = [];
+  List<Map<String, dynamic>> favoriteProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCartQuantity();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('favorites')
+          .doc(currentUser!.uid)
+          .get();
+
+      if (userDoc.exists) {
+        favoriteProductIds = List<String>.from(userDoc['favorites'] ?? []);
+        await _loadFavoriteProducts();
+      }
+    }
+  }
+
+  Future<void> _loadFavoriteProducts() async {
+    List<Map<String, dynamic>> products = [];
+    for (String productId in favoriteProductIds) {
+      DocumentSnapshot productDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .get();
+
+      if (productDoc.exists) {
+        products.add(productDoc.data() as Map<String, dynamic>);
+      }
+    }
+    setState(() {
+      favoriteProducts = products;
+    });
+  }
+
+  Future<void> _toggleFavorite(String productId) async {
+    if (favoriteProductIds.contains(productId)) {
+      setState(() {
+        favoriteProductIds.remove(productId);
+      });
+    } else {
+      setState(() {
+        favoriteProductIds.add(productId);
+      });
+    }
+
+    // Update the favorite list in Firestore
+    await FirebaseFirestore.instance
+        .collection('favorites')
+        .doc(currentUser!.uid)
+        .set({'favorites': favoriteProductIds});
+  }
+
+  Future<void> fetchCartQuantity() async {
+    if (currentUser != null) {
+      try {
+        DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+            .collection('carts')
+            .doc(currentUser!.uid)
+            .get();
+
+        if (cartDoc.exists) {
+          List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+          for (var item in cartItems) {
+            if (item['productId'] == widget.food['id']) {
+              setState(() {
+                quantity = item['quantity'];
+              });
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        print('Error fetching cart quantity: $e');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,10 +167,15 @@ class _DetailPageState extends State<DetailPage> {
                 child: Row(
                   children: [
                     IconButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (quantity > 1) {
-                          quantity -= 1;
-                          setState(() {});
+                          await removeFromCart(widget.food['id'], currentUser!);
+                          await fetchCartQuantity();
+                        } else if (quantity == 1) {
+                          await removeFromCart(widget.food['id'], currentUser!);
+                          setState(() {
+                            quantity = 0;
+                          });
                         }
                       },
                       icon: const Icon(Icons.remove, color: Colors.white),
@@ -96,9 +189,10 @@ class _DetailPageState extends State<DetailPage> {
                     ),
                     const SizedBox(width: 4),
                     IconButton(
-                      onPressed: () {
-                        quantity += 1;
-                        setState(() {});
+                      onPressed: () async {
+                        await addToCart(widget.food['id'], widget.food['name'],
+                            currentUser!);
+                        await fetchCartQuantity();
                       },
                       icon: const Icon(Icons.add, color: Colors.white),
                     ),
@@ -207,7 +301,12 @@ class _DetailPageState extends State<DetailPage> {
           Material(
             color: Colors.white.withOpacity(0.3),
             borderRadius: BorderRadius.circular(8),
-            child: const BackButton(color: Colors.white),
+            child: BackButton(
+              color: Colors.white,
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+            ),
           ),
           const Spacer(),
           Text(
@@ -221,13 +320,19 @@ class _DetailPageState extends State<DetailPage> {
             color: Colors.white.withOpacity(0.3),
             borderRadius: BorderRadius.circular(8),
             child: InkWell(
-              onTap: () {},
+              onTap: () {
+                _toggleFavorite(widget.food['id']);
+              },
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 40,
                 width: 40,
                 alignment: Alignment.center,
-                child: const Icon(Icons.favorite_border, color: Colors.white),
+                child: Icon(
+                    favoriteProductIds.contains(widget.food['id'])
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: Colors.white),
               ),
             ),
           ),

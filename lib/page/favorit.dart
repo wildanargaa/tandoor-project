@@ -108,7 +108,11 @@ class _FavoritePageState extends State<FavoritePage> {
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) {
             return DetailPage(food: product);
-          }));
+          })).then((value) {
+            setState(() {
+              _loadFavorites();
+            });
+          });
         },
         child: Container(
           padding: const EdgeInsets.all(8),

@@ -230,3 +230,133 @@ Widget documentStreamBuilder(String collection,
     },
   );
 }
+
+Future<void> addToCart(
+    String productId, String productName, User currentUser) async {
+  // Ambil dokumen keranjang pengguna dari Firestore
+  DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+      .collection('carts')
+      .doc(currentUser.uid)
+      .get();
+
+  // Periksa apakah keranjang pengguna sudah ada atau belum
+  if (cartDoc.exists) {
+    // Periksa apakah produk sudah ada di keranjang
+    List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+    bool productExists = false;
+    for (int i = 0; i < cartItems.length; i++) {
+      if (cartItems[i]['productId'] == productId) {
+        // Jika produk sudah ada, tambahkan 1 ke quantity
+        cartItems[i]['quantity'] = cartItems[i]['quantity'] + 1;
+        productExists = true;
+        break;
+      }
+    }
+
+    // Jika produk belum ada, tambahkan produk baru dengan quantity 1
+    if (!productExists) {
+      cartItems.add({
+        'productId': productId,
+        'productName': productName,
+        'quantity': 1,
+      });
+    }
+
+    // Perbarui dokumen keranjang dengan item-item baru
+    await FirebaseFirestore.instance
+        .collection('carts')
+        .doc(currentUser.uid)
+        .update({'cart': cartItems});
+  } else {
+    // Jika belum ada, buat dokumen keranjang baru
+    await FirebaseFirestore.instance
+        .collection('carts')
+        .doc(currentUser.uid)
+        .set({
+      'cart': [
+        {
+          'productId': productId,
+          'productName': productName,
+          'quantity': 1,
+        }
+      ]
+    });
+  }
+}
+
+Future<void> removeFromCart(String productId, User currentUser) async {
+  // Ambil dokumen keranjang pengguna dari Firestore
+  DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+      .collection('carts')
+      .doc(currentUser.uid)
+      .get();
+
+  // Periksa apakah keranjang pengguna sudah ada atau belum
+  if (cartDoc.exists) {
+    // Ambil item-item dalam keranjang
+    List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+    bool productExists = false;
+
+    // Periksa apakah produk ada di keranjang
+    for (int i = 0; i < cartItems.length; i++) {
+      if (cartItems[i]['productId'] == productId) {
+        if (cartItems[i]['quantity'] > 1) {
+          // Jika kuantitas lebih dari 1, kurangi kuantitasnya
+          cartItems[i]['quantity'] = cartItems[i]['quantity'] - 1;
+        } else {
+          // Jika kuantitasnya 1, hapus item dari keranjang
+          cartItems.removeAt(i);
+        }
+        productExists = true;
+        break;
+      }
+    }
+
+    if (productExists) {
+      // Perbarui dokumen keranjang dengan item-item baru
+      await FirebaseFirestore.instance
+          .collection('carts')
+          .doc(currentUser.uid)
+          .update({'cart': cartItems});
+    }
+  } else {
+    // Jika belum ada, bisa abaikan atau lakukan penanganan lainnya
+    print("Keranjang tidak ditemukan.");
+  }
+}
+
+Future<void> removeItemFromCart(String productId, User currentUser) async {
+  // Ambil dokumen keranjang pengguna dari Firestore
+  DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+      .collection('carts')
+      .doc(currentUser.uid)
+      .get();
+
+  // Periksa apakah keranjang pengguna sudah ada atau belum
+  if (cartDoc.exists) {
+    // Ambil item-item dalam keranjang
+    List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+    bool productExists = false;
+
+    // Periksa apakah produk ada di keranjang
+    for (int i = 0; i < cartItems.length; i++) {
+      if (cartItems[i]['productId'] == productId) {
+        // Hapus item dari keranjang
+        cartItems.removeAt(i);
+        productExists = true;
+        break;
+      }
+    }
+
+    if (productExists) {
+      // Perbarui dokumen keranjang dengan item-item baru
+      await FirebaseFirestore.instance
+          .collection('carts')
+          .doc(currentUser.uid)
+          .update({'cart': cartItems});
+    }
+  } else {
+    // Jika belum ada, bisa abaikan atau lakukan penanganan lainnya
+    print("Keranjang tidak ditemukan.");
+  }
+}
