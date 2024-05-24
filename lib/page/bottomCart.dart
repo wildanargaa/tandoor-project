@@ -24,18 +24,207 @@ class _CartPageState extends State<CartPage> {
   void initState() {
     super.initState();
     _getUser();
+    getProductsTotalPrice();
   }
 
-  getProductsTotalPrice(List<Map<String, dynamic>> products) async {
+  Future<void> getProductsTotalPrice() async {
+    List<Map<String, dynamic>> products = [];
+    int totalPrice = 0; // Inisialisasi total harga
+    products = await fetchProductsFromFirestore(currentUser!.uid);
     for (Map<String, dynamic> product in products) {
-      int price =
-          await getProductTotalPrice(product['productId'], product['quantity']);
-      totalPrice += price;
+      int price = await getProductTotalPrice(product['productId'], product);
+      totalPrice += price; // Tambahkan harga produk ke total harga
+    }
+
+    // Set total harga ke state
+    setState(() {
+      this.totalPrice = totalPrice;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchProductsFromFirestore(
+      String userId) async {
+    try {
+      // Lakukan pengambilan data produk dari Firestore
+      DocumentSnapshot<Map<String, dynamic>> cartSnapshot =
+          await FirebaseFirestore.instance
+              .collection('carts')
+              .doc(userId)
+              .get();
+
+      if (cartSnapshot.exists) {
+        // Jika data keranjang ditemukan, ambil daftar produk dari keranjang
+        Map<String, dynamic> cartData = cartSnapshot.data()!;
+        List<Map<String, dynamic>> products =
+            List<Map<String, dynamic>>.from(cartData['cart']);
+        return products;
+      } else {
+        // Jika data keranjang tidak ditemukan, kembalikan list kosong
+        return [];
+      }
+    } catch (e) {
+      // Tangani kesalahan jika terjadi
+      print('Error fetching products: $e');
+      throw e;
     }
   }
 
   Future<void> _getUser() async {
     currentUser = FirebaseAuth.instance.currentUser;
+  }
+
+  Future<Widget> _buildCartCard(
+      Map<String, dynamic> product, BuildContext context) async {
+    Map<String, dynamic> doc = await getProduct(product['productId']);
+    String image = await getProductImage(product['productId']);
+    int price = await getProductPrice(product['productId']);
+    int quantity = product['quantity']!.toInt();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return DetailPage(food: doc);
+          }));
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 1,
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: networkImage(image ?? "", 100, 100))),
+              const SizedBox(
+                width: 12,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product['productName'],
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Rp${priceConverter(price) ?? 0}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00541A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        onPressed: () async {
+                          await removeItemFromCart(
+                              product['productId'], currentUser!);
+                          await getProductsTotalPrice();
+                        },
+                        icon: const Icon(
+                          Icons.disabled_by_default,
+                          color: Color(0xFF00541A),
+                          size: 28,
+                        ),
+                      ),
+                      SizedBox(height: 25),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              await removeFromCart(
+                                  product['productId'], currentUser!);
+                              await getProductsTotalPrice();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.2),
+                                    spreadRadius: 2,
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: Icon((CupertinoIcons.minus)),
+                            ),
+                          ),
+                          Container(
+                            margin: EdgeInsets.symmetric(horizontal: 10),
+                            child: Text(
+                              product['quantity']!.toString(),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                              await addToCart(product['productId'],
+                                  product['productName'], currentUser!);
+                              await getProductsTotalPrice();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.2),
+                                    spreadRadius: 2,
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: Icon((CupertinoIcons.plus)),
+                            ),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -62,7 +251,6 @@ class _CartPageState extends State<CartPage> {
               snapshot.data!.data()! as Map<String, dynamic>;
           List<Map<String, dynamic>> products =
               List<Map<String, dynamic>>.from(cartData['cart']);
-
           // Tampilkan daftar produk dalam keranjang
           return Column(
             children: [
@@ -79,7 +267,12 @@ class _CartPageState extends State<CartPage> {
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return CircularProgressIndicator(); // Show loading indicator while fetching card
+                            return SizedBox(
+                                height: 100,
+                                child: Center(
+                                    child: CircularProgressIndicator(
+                                  color: Color(0xFF00541A),
+                                ))); // Show loading indicator while fetching card
                           } else if (snapshot.hasError) {
                             return Text('Error: ${snapshot.error}');
                           } else {
@@ -87,24 +280,6 @@ class _CartPageState extends State<CartPage> {
                           }
                         },
                       );
-                      /*ListTile(
-                        title: Text(product['productName']),
-                        subtitle: Text('Jumlah: ${product['quantity']}'),
-                        trailing: FutureBuilder<int>(
-                          future: getProductPrice(product['productId']),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return CircularProgressIndicator(); // Show loading indicator while fetching price
-                            } else if (snapshot.hasError) {
-                              return Text('Error: ${snapshot.error}');
-                            } else {
-                              int price = snapshot.data!;
-                              return Text('Harga: ${priceConverter(price)}');
-                            }
-                          },
-                        ),
-                      );*/
                     },
                   ),
                 ),
@@ -121,7 +296,7 @@ class _CartPageState extends State<CartPage> {
                     )
                   ],
                 ),
-                child: const Column(
+                child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -159,7 +334,7 @@ class _CartPageState extends State<CartPage> {
                           ),
                         ),
                         Text(
-                          '\ Rp40,000',
+                          priceConverter(totalPrice),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -227,156 +402,6 @@ class _CartPageState extends State<CartPage> {
       ),
     );
   }
-}
-
-Future<Widget> _buildCartCard(
-    Map<String, dynamic> product, BuildContext context) async {
-  Map<String, dynamic> doc = await getProduct(product['productId']);
-  String image = await getProductImage(product['productId']);
-  int price = await getProductPrice(product['productId']);
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 20),
-    child: GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return DetailPage(food: doc);
-        }));
-      },
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              spreadRadius: 1,
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: networkImage(image ?? "", 100, 100))),
-            const SizedBox(
-              width: 12,
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product['productName'],
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Rp${priceConverter(price) ?? 0}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF00541A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      onPressed: () async {
-                        await removeItemFromCart(
-                            product['productId'], currentUser!);
-                      },
-                      icon: const Icon(
-                        Icons.disabled_by_default,
-                        color: Color(0xFF00541A),
-                        size: 28,
-                      ),
-                    ),
-                    SizedBox(height: 25),
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () async {
-                            await removeFromCart(
-                                product['productId'], currentUser!);
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: Icon((CupertinoIcons.minus)),
-                          ),
-                        ),
-                        Container(
-                          margin: EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(
-                            product['quantity']!.toString(),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () async {
-                            await addToCart(product['productId'],
-                                product['productName'], currentUser!);
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 2,
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: Icon((CupertinoIcons.plus)),
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 Future<int> getProductPrice(String productId) async {
