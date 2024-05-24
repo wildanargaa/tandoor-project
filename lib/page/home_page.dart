@@ -20,6 +20,8 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  TextEditingController searchController = TextEditingController();
+  String searchTerm = '';
   int indexCategory = 0;
   Widget nama = const Text(
     "selamat datang",
@@ -197,9 +199,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget foodGrid() {
+  Widget foodGrid(String searchTerm) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('products').snapshots(),
+      stream: (searchTerm == "")
+          ? FirebaseFirestore.instance.collection('products').snapshots()
+          : FirebaseFirestore.instance
+              .collection('products')
+              .where('name', isGreaterThanOrEqualTo: searchTerm)
+              .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -227,6 +234,38 @@ class _HomePageState extends ConsumerState<HomePage> {
           },
         );
       },
+    );
+  }
+
+  Widget search() {
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(8, 2, 6, 2),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              onChanged: (value) {
+                setState(() {
+                  searchTerm = value;
+                });
+              },
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                prefixIcon: const Icon(Icons.search, color: Color(0xFF00541A)),
+                hintText: 'Search food',
+                hintStyle: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -281,7 +320,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           //const SizedBox(height: 20),
           //categories(),
           const SizedBox(height: 10),
-          foodGrid(),
+          foodGrid(searchTerm),
         ],
       ),
     );
@@ -354,32 +393,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               color: Colors.black,
               fontWeight: FontWeight.bold,
               fontSize: 34,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget search() {
-    return Container(
-      height: 60,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(8, 2, 6, 2),
-      decoration: BoxDecoration(
-        color: Colors.green[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF00541A)),
-                hintText: 'Search food',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-              ),
             ),
           ),
         ],
