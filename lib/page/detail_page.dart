@@ -348,7 +348,10 @@ class _DetailPageState extends State<DetailPage> {
           topLeft: Radius.circular(16), topRight: Radius.circular(16)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: () async {
+          await addToCart(widget.food['id'], widget.food['name'], currentUser!);
+          await fetchCartQuantity();
+        },
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(
