@@ -181,15 +181,18 @@ Future<void> uploadImage(
   }
 }
 
-Image networkImage(String imageURL) {
-  return Image.network(imageURL, width: 300, height: 300, fit: BoxFit.cover,
-      loadingBuilder: (BuildContext context, Widget child,
+Image networkImage(String imageURL, double width, double height) {
+  return Image.network(imageURL,
+      width: width,
+      height: height,
+      fit: BoxFit.cover, loadingBuilder: (BuildContext context, Widget child,
           ImageChunkEvent? loadingProgress) {
     if (loadingProgress == null) {
       return child;
     } else {
       return Center(
         child: CircularProgressIndicator(
+          color: const Color(0xFF00541A),
           value: loadingProgress.expectedTotalBytes != null
               ? loadingProgress.cumulativeBytesLoaded /
                   (loadingProgress.expectedTotalBytes ?? 1)
@@ -201,4 +204,159 @@ Image networkImage(String imageURL) {
           (BuildContext context, Object exception, StackTrace? stackTrace) {
     return const Text('Failed to load image');
   });
+}
+
+Widget documentStreamBuilder(String collection,
+    Widget Function(Map<String, dynamic>) documentCardBuilder) {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance.collection(collection).snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (!snapshot.hasData) {
+        return const Center(child: Text('No Data Found'));
+      }
+
+      final documents = snapshot.data!.docs;
+
+      return ListView.builder(
+        itemCount: documents.length,
+        itemBuilder: (context, index) {
+          final data = documents[index].data() as Map<String, dynamic>;
+          return documentCardBuilder(data);
+        },
+      );
+    },
+  );
+}
+
+Future<void> addToCart(
+    String productId, String productName, User currentUser) async {
+  // Ambil dokumen keranjang pengguna dari Firestore
+  DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+      .collection('carts')
+      .doc(currentUser.uid)
+      .get();
+
+  // Periksa apakah keranjang pengguna sudah ada atau belum
+  if (cartDoc.exists) {
+    // Periksa apakah produk sudah ada di keranjang
+    List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+    bool productExists = false;
+    for (int i = 0; i < cartItems.length; i++) {
+      if (cartItems[i]['productId'] == productId) {
+        // Jika produk sudah ada, tambahkan 1 ke quantity
+        cartItems[i]['quantity'] = cartItems[i]['quantity'] + 1;
+        productExists = true;
+        break;
+      }
+    }
+
+    // Jika produk belum ada, tambahkan produk baru dengan quantity 1
+    if (!productExists) {
+      cartItems.add({
+        'productId': productId,
+        'productName': productName,
+        'quantity': 1,
+      });
+    }
+
+    // Perbarui dokumen keranjang dengan item-item baru
+    await FirebaseFirestore.instance
+        .collection('carts')
+        .doc(currentUser.uid)
+        .update({'cart': cartItems});
+  } else {
+    // Jika belum ada, buat dokumen keranjang baru
+    await FirebaseFirestore.instance
+        .collection('carts')
+        .doc(currentUser.uid)
+        .set({
+      'cart': [
+        {
+          'productId': productId,
+          'productName': productName,
+          'quantity': 1,
+        }
+      ]
+    });
+  }
+}
+
+Future<void> removeFromCart(String productId, User currentUser) async {
+  // Ambil dokumen keranjang pengguna dari Firestore
+  DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+      .collection('carts')
+      .doc(currentUser.uid)
+      .get();
+
+  // Periksa apakah keranjang pengguna sudah ada atau belum
+  if (cartDoc.exists) {
+    // Ambil item-item dalam keranjang
+    List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+    bool productExists = false;
+
+    // Periksa apakah produk ada di keranjang
+    for (int i = 0; i < cartItems.length; i++) {
+      if (cartItems[i]['productId'] == productId) {
+        if (cartItems[i]['quantity'] > 1) {
+          // Jika kuantitas lebih dari 1, kurangi kuantitasnya
+          cartItems[i]['quantity'] = cartItems[i]['quantity'] - 1;
+        } else {
+          // Jika kuantitasnya 1, hapus item dari keranjang
+          cartItems.removeAt(i);
+        }
+        productExists = true;
+        break;
+      }
+    }
+
+    if (productExists) {
+      // Perbarui dokumen keranjang dengan item-item baru
+      await FirebaseFirestore.instance
+          .collection('carts')
+          .doc(currentUser.uid)
+          .update({'cart': cartItems});
+    }
+  } else {
+    // Jika belum ada, bisa abaikan atau lakukan penanganan lainnya
+    print("Keranjang tidak ditemukan.");
+  }
+}
+
+Future<void> removeItemFromCart(String productId, User currentUser) async {
+  // Ambil dokumen keranjang pengguna dari Firestore
+  DocumentSnapshot cartDoc = await FirebaseFirestore.instance
+      .collection('carts')
+      .doc(currentUser.uid)
+      .get();
+
+  // Periksa apakah keranjang pengguna sudah ada atau belum
+  if (cartDoc.exists) {
+    // Ambil item-item dalam keranjang
+    List<Map<String, dynamic>> cartItems = List.from(cartDoc['cart']);
+    bool productExists = false;
+
+    // Periksa apakah produk ada di keranjang
+    for (int i = 0; i < cartItems.length; i++) {
+      if (cartItems[i]['productId'] == productId) {
+        // Hapus item dari keranjang
+        cartItems.removeAt(i);
+        productExists = true;
+        break;
+      }
+    }
+
+    if (productExists) {
+      // Perbarui dokumen keranjang dengan item-item baru
+      await FirebaseFirestore.instance
+          .collection('carts')
+          .doc(currentUser.uid)
+          .update({'cart': cartItems});
+    }
+  } else {
+    // Jika belum ada, bisa abaikan atau lakukan penanganan lainnya
+    print("Keranjang tidak ditemukan.");
+  }
 }
