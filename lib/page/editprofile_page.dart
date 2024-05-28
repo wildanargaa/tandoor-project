@@ -175,7 +175,7 @@ class _EditProfilePageState extends ConsumerState {
                   borderRadius: BorderRadius.circular(250),
                   child: (userData['image_url'] != null &&
                           userData['image_url']!.isNotEmpty)
-                      ? networkImage(userData['image_url']!)
+                      ? networkImage(userData['image_url']!, 300, 300)
                       : CircleAvatar(
                           radius: 150,
                           backgroundColor: Colors.grey,
