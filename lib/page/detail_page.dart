@@ -212,7 +212,7 @@ class _DetailPageState extends State<DetailPage> {
           const Spacer(),
           Text(
             'Detail Produk',
-            style: Theme.of(context).textTheme.headline6!.copyWith(
+            style: Theme.of(context).textTheme.headlineLarge!.copyWith(
                   color: Colors.white,
                 ),
           ),
